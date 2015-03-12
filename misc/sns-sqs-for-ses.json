@@ -1,0 +1,176 @@
+{
+   "AWSTemplateFormatVersion":"2010-09-09",
+   "Description":"SNS and SQS resources for SES notifications. Create only, UPDATE does not work for SNS!",
+   "Parameters":{
+      "TopicSuffix":{
+         "Description":"String to append to SNS topic names",
+         "AllowedPattern":"[A-Za-z0-9]{3,10}",
+         "ConstraintDescription":"Must match: [A-Za-z0-9]{3,10}",
+         "Type":"String"
+      }, 
+      "RetentionPeriod":{
+        "Description":"Queue retention period",
+        "Default":86400,
+        "Type":"Number"
+      },
+      "VisibilityTimeout":{
+        "Description":"SQS visibility timeout",
+        "Default":300,
+        "Type":"Number"
+      }
+   },
+   "Resources":{
+     "EmailComplaintQueue" : {
+       "Type" : "AWS::SQS::Queue",
+       "Properties" : {
+           "QueueName" : {"Fn::Join":["", [ "email-complaint-", {"Ref":"TopicSuffix"} ]]},
+           "MessageRetentionPeriod": {"Ref":"RetentionPeriod"},
+           "ReceiveMessageWaitTimeSeconds": 20,
+           "VisibilityTimeout":{"Ref":"VisibilityTimeout"}
+       }
+     },
+     "EmailBounceQueue" : {
+       "Type" : "AWS::SQS::Queue",
+       "Properties" : {
+           "QueueName" : {"Fn::Join":["", [ "email-bounce-", {"Ref":"TopicSuffix"} ]]},
+           "MessageRetentionPeriod": {"Ref":"RetentionPeriod"},
+           "ReceiveMessageWaitTimeSeconds": 20,
+           "VisibilityTimeout":{"Ref":"VisibilityTimeout"}
+       }
+     },
+     "EmailDeliveryQueue" : {
+       "Type" : "AWS::SQS::Queue",
+       "Properties" : {
+           "QueueName" : {"Fn::Join":["", [ "email-delivery-", {"Ref":"TopicSuffix"} ]]},
+           "MessageRetentionPeriod": {"Ref":"RetentionPeriod"},
+           "ReceiveMessageWaitTimeSeconds": 20,
+           "VisibilityTimeout":{"Ref":"VisibilityTimeout"}
+       }
+     },
+     "EmailBounceQueuePolicy":{
+       "Type" : "AWS::SQS::QueuePolicy",
+       "Properties":{
+          "PolicyDocument" : {
+             "Id" : "BounceQueuePolicy",
+             "Version" : "2012-10-17",
+             "Statement" :[
+              {
+                "Sid": "AllowSNSMessages",
+                "Effect": "Allow",
+                "Principal": { "AWS": "*" },
+                "Action": "sqs:SendMessage",
+                "Resource": { "Fn::GetAtt" : ["EmailBounceQueue", "Arn"]},
+                "Condition": { "ArnEquals": { "aws:SourceArn": {"Ref":"EmailBounceTopic"} } }
+              }
+             ]
+          },
+          "Queues" : [ { "Ref" : "EmailBounceQueue" } ]
+       }
+     },
+     "EmailComplaintQueuePolicy":{
+       "Type" : "AWS::SQS::QueuePolicy",
+       "Properties":{
+          "PolicyDocument" : {
+             "Id" : "ComplaintQueuePolicy",
+             "Version" : "2012-10-17",
+             "Statement" :[
+              {
+                "Sid": "AllowSNSMessages",
+                "Effect": "Allow",
+                "Principal": { "AWS": "*" },
+                "Action": "sqs:SendMessage",
+                "Resource": { "Fn::GetAtt" : ["EmailComplaintQueue", "Arn"]},
+                "Condition": { "ArnEquals": { "aws:SourceArn": {"Ref":"EmailComplaintTopic"} } }
+              }
+             ]
+          },
+          "Queues" : [ { "Ref" : "EmailComplaintQueue" } ]
+       }
+     },
+     "EmailDeliveryQueuePolicy":{
+       "Type" : "AWS::SQS::QueuePolicy",
+       "Properties":{
+          "PolicyDocument" : {
+             "Id" : "DeliveryQueuePolicy",
+             "Version" : "2012-10-17",
+             "Statement" :[
+              {
+                "Sid": "AllowSNSMessages",
+                "Effect": "Allow",
+                "Principal": { "AWS": "*" },
+                "Action": "sqs:SendMessage",
+                "Resource": { "Fn::GetAtt" : ["EmailDeliveryQueue", "Arn"]},
+                "Condition": { "ArnEquals": { "aws:SourceArn": {"Ref":"EmailDeliveryTopic"} } }
+              }
+             ]
+          },
+          "Queues" : [ { "Ref" : "EmailComplaintQueue" } ]
+       }
+     },
+     "EmailBounceTopic" : {
+        "Type" : "AWS::SNS::Topic",
+        "Properties" : {
+           "TopicName" : {"Fn::Join":["", [ "email-bounce-", {"Ref":"TopicSuffix"} ]]},
+           "Subscription" : [
+              { "Endpoint" : { "Fn::GetAtt" : [ "EmailBounceQueue", "Arn" ] }, "Protocol" : "sqs" }
+           ]
+        }
+     },
+     "EmailComplaintTopic" : {
+        "Type" : "AWS::SNS::Topic",
+        "Properties" : {
+           "TopicName" : {"Fn::Join":["", [ "email-complaint-", {"Ref":"TopicSuffix"} ]]},
+           "Subscription" : [
+              { "Endpoint" : { "Fn::GetAtt" : [ "EmailComplaintQueue", "Arn" ] }, "Protocol" : "sqs" }
+           ]
+        }
+     },
+     "EmailDeliveryTopic" : {
+        "Type" : "AWS::SNS::Topic",
+        "Properties" : {
+           "TopicName" : {"Fn::Join":["", [ "email-delivery-", {"Ref":"TopicSuffix"} ]]},
+           "Subscription" : [
+              { "Endpoint" : { "Fn::GetAtt" : [ "EmailDeliveryQueue", "Arn" ] }, "Protocol" : "sqs" }
+           ]
+        }
+     }
+   },
+   "Outputs":{
+     "EmailBounceTopic" : {
+       "Description" : "ARN of the Email Bounce SNS Topic",
+       "Value" : { "Ref" : "EmailBounceTopic" }
+     },
+     "EmailComplaintTopic" : {
+       "Description" : "ARN of the Email Complaint SNS Topic",
+       "Value" : { "Ref" : "EmailComplaintTopic" }
+     },
+     "EmailDeliveryTopic" : {
+       "Description" : "ARN of the Email Delivery SNS Topic",
+       "Value" : { "Ref" : "EmailDeliveryTopic" }
+     },
+     "EmailBounceQueueURL" : {
+       "Description" : "URL of the source queue",
+       "Value" : { "Ref" : "EmailBounceQueue" }
+     },
+     "EmailBounceQueueARN" : {
+       "Description" : "ARN of the source queue",
+       "Value" : { "Fn::GetAtt" : ["EmailBounceQueue", "Arn"]}
+     },
+     "EmailComplaintQueueURL" : {
+       "Description" : "URL of the source queue",
+       "Value" : { "Ref" : "EmailComplaintQueue" }
+     },
+     "EmailComplaintQueueARN" : {
+       "Description" : "ARN of the source queue",
+       "Value" : { "Fn::GetAtt" : ["EmailComplaintQueue", "Arn"]}
+     },
+     "EmailDeliveryQueueURL" : {
+       "Description" : "URL of the source queue",
+       "Value" : { "Ref" : "EmailDeliveryQueue" }
+     },
+     "EmailDeliveryQueueARN" : {
+       "Description" : "ARN of the source queue",
+       "Value" : { "Fn::GetAtt" : ["EmailDeliveryQueue", "Arn"]}
+     }
+   }
+}
