@@ -214,6 +214,7 @@ func Maillog(n *Notification) {
 		}
 
 	case "Complaint":
+		// TODO ...
 		fmt.Printf("%v\n", s.Complaint)
 	default:
 		_d("Unknown type %s", s.Type)

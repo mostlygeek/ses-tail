@@ -1,0 +1,2 @@
+Licensed under the MPL v2.0
+See: https://www.mozilla.org/MPL/2.0/index.txt
