@@ -43,6 +43,19 @@ Usage of ses-tail:
   -secret_id="": (optional) AWS Access ID, auto-detected if blank
 ````
 
+### JSON output
+
+`ses-tail` can output the raw notification JSON. This is best combined with a tool like `jq`.
+
+This example uses `jq` to extract the diagnostic info out of a bounce notification: 
+
+````
+>  ses-tail -q <queueurl> -format json | jq '.bounce.bouncedRecipients[0].diagnosticCode'
+"smtp; 550-5.1.1 The email account that you tried to reach does not exist....."
+````
+
+
+
 ## About misc/sns-sqs-for-ses.json
 
 This Cloudformation template creates three SNS topics plus connected SQS queues for SES notifications. Connecting to SES to the SNS topics must be done manually through the API or AWS console.
