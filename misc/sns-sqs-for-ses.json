@@ -104,7 +104,7 @@
               }
              ]
           },
-          "Queues" : [ { "Ref" : "EmailComplaintQueue" } ]
+          "Queues" : [ { "Ref" : "EmailDeliveryQueue" } ]
        }
      },
      "EmailBounceTopic" : {
