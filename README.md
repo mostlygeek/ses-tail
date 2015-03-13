@@ -43,6 +43,10 @@ Usage of ses-tail:
   -secret_id="": (optional) AWS Access ID, auto-detected if blank
 ````
 
+## About misc/sns-sqs-for-ses.json
+
+This Cloudformation template creates three SNS topics plus connected SQS queues for SES notifications. Connecting to SES to the SNS topics must be done manually through the API or AWS console.
+
 ## License
 
 See LICENSE.txt
