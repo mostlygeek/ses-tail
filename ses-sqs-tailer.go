@@ -23,6 +23,7 @@ var (
 	fRegion       string
 	fQueueUrl     string
 	fNoPurge      bool
+	fFormat       string
 )
 
 func init() {
@@ -32,6 +33,7 @@ func init() {
 	flag.StringVar(&fAccessId, "access_id", "", "(optional) AWS Access ID, auto-detected if blank")
 	flag.StringVar(&fAccessSecret, "secret_id", "", "(optional) AWS Access ID, auto-detected if blank")
 	flag.StringVar(&fRegion, "region", "us-west-2", "(optional) AWS region")
+	flag.StringVar(&fFormat, "format", "maillog", "(optional) output format, maillog|json")
 	flag.BoolVar(&fNoPurge, "nopurge", false, "leave messages in queue after receiving them")
 
 	flag.Parse()
@@ -84,7 +86,11 @@ func main() {
 				continue
 			}
 
-			Maillog(&notify)
+			if fFormat == "json" {
+				fmt.Println(notify.Message)
+			} else {
+				Maillog(&notify)
+			}
 			//fmt.Println(*m.Body)
 
 			// save them for deleting
@@ -107,6 +113,7 @@ func main() {
 
 }
 
+// Structs for holding the JSON parsed data
 type Notification struct {
 	Type             string
 	MessageId        string
